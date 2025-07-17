@@ -14,18 +14,21 @@ class Initializer():
     - Creating embedding vectors
 
     max_length is the maximum length/number of tokens in an input set (and target set, respectively) used for training.
+    embeding_dim is the number of dimensions for an embedding vector, i.e. each token will receive a vector of this size
     """
 
-    def __init__(self, max_length):
+    DEFAULT_TEXT = "./data/the-verdict.txt"
+
+    def __init__(self, max_length=4, embedding_dim=256):
         self.max_length = max_length
         self.txt = Initializer.get_raw_input_text()
         self.tokenizer = Tokenizer()
-        self.full_embeddings = Embedding(self.tokenizer.vocab_size, output_dim=256, input_max_length=max_length)
+        self.full_embeddings = Embedding(self.tokenizer.vocab_size, output_dim=embedding_dim, input_max_length=max_length)
         self.dataset = GPTDataset(self.txt, self.tokenizer, self.max_length, stride=self.max_length)
 
     @staticmethod
     def get_raw_input_text():
-        with open("./data/the-verdict.txt", "r", encoding="utf-8") as f:
+        with open(Initializer.DEFAULT_TEXT, "r", encoding="utf-8") as f:
             return f.read()
 
     def input_dataloader_iter(self, batch_size=4, shuffle=True, drop_last=True, num_workers=0):

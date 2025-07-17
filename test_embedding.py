@@ -33,6 +33,10 @@ def test_get_embedding():
     # make sure we enforce the correct length of the tokens array passed
     with pytest.raises(ValueError):
         e.get(tokens=[3, 1, 2]).tolist()
+    with pytest.raises(ValueError):
+        e.get(tokens=[[1, 2, 3],[1, 2, 3]]) # 
+    with pytest.raises(ValueError):
+        e.get(tokens=[[[1, 2, 3, 4]]]) # too many dimensions
 
     tks = e.get(tokens=[1, 4, 3, 1])
     # the returned embeddings should be of shape len(tokens) * output_dim
@@ -41,3 +45,6 @@ def test_get_embedding():
     # the tokens at index 0 and index 3 are both 1, however, because of their different position
     # they will not share the same embeddings
     assert tks.tolist()[0][0] != tks.tolist()[3][0]
+
+    tks = e.get(tokens=[[1, 4, 3, 1], [4, 3, 1, 2]])
+    assert tks.shape == torch.Size([2, 4, 3])

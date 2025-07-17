@@ -37,7 +37,7 @@ class Embedding():
         one vector (of output_dim dimensions) for every token position, whereas there are at most input_max_length tokens in the input.
         The position tensor will then be added to each set of tokens given here.
 
-        For this to work, the length of "tokens" passed to this method must be of size input_max_length
+        For this to work, the number of tokens per batch passed to this method must be of size input_max_length
 
         For example. Let's say we want to retrieve the embeddings for two sets of tokens, whereas the (input_)max_length is set to 3
             tokens = tensor([3, 45, 23], [76, 23, 12])
@@ -78,8 +78,13 @@ class Embedding():
             )
         """
     
-        if len(tokens) != self.input_max_length:
-            raise ValueError(f"tokens must be of length {self.input_max_length}, was {len(tokens)}")
+        tokens_tensor = torch.tensor(tokens)
+        if tokens_tensor.ndim == 2 and tokens_tensor.size()[1] != self.input_max_length:
+            raise ValueError(f"number of tokens per batch must be {self.input_max_length}, was {tokens_tensor.size()[1]}")
+        if tokens_tensor.ndim == 1 and len(tokens_tensor) != self.input_max_length:
+            raise ValueError(f"number of tokens must be {self.input_max_length}, was {len(tokens_tensor)}")
+        if tokens_tensor.ndim > 2:
+            raise ValueError(f"invalid number of dimensiond for passed tokens. Must be 1 or 2, was {tokens_tensor.ndim}")
 
         return self._tok(tokens) + self.pos 
 
