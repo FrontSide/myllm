@@ -1,71 +1,39 @@
 import torch
 
-class Attention():
+class AttentionSimple():
 
-    def __init__(self, token_vector_dim, weight_vector_dim):
-        """
-        This attention implementation uses trainable weights.
-        For this we need to create 3 weight matrices, named: query, key and value.
-        These matrices will be used in calculating the attention weights and
-        ,thus, the context vectors
-
-        Each of these matrices will be of size token_vector_dim * weight_vector_dim
-        This way we can perform matrix multiplications between the token embedding vectors 
-        and the weight vectors. Each row in the weight vector is for a position in the token embedding vector 
-        
-        parameters:
-            token_vector_dim:
-                The dimension of the embedding vector representing a token 
-            weight_vector_dim:
-                The dimension of the vector representing a weigth
-        """
-        torch.manual_seed(123)
-        self.query_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=False)
-        self.key_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=False)
-        self.value_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=False)
-       
-    
-    def query_matrix(self, embeddings):
-        """
-        Calculates a query matrix for one given token
-
-
-        params:
-            embeddings must be a tensor of order 2,
-                with each row being a vector of embeddings 
-                of dimension self.token_vector_dim representing one token.
-
-        token_embedding_vector must be a vector of dimension 
-            self.token_vector_dim
-        """
-        return embeddings @ self.query_weights
-
-
-    def key_matrix(self, embeddings):
-        """
-        Same as query_matrix but calculates the key matrix
-        """
-        return embeddings @ self.key_weights 
-
-
-    def value_matrix(self, embeddings):
-        """
-        Same as query_matrix but calculates the value matrix
-        """
-        return embeddings @ self.value_weights
-
+    def __init__(self):
+        pass
 
     def scores_for_token(self, embeddings, tok_idx):
         """
-        Calculate the attention scores of all tokens in embeddings 
-        relative to the "attended" token at index tok_idx 
+        Calculate the attention scores of all tokens in embeddings
+        relative to the "attended" token at index tok_idx
+      
+        The attention values are the dot products of the attended token and each other token.
 
-        The attention scores are the dot product of the associated key vector and query vector.  
+        So for example if the input embeddings are these 3 tokens (with 3-dim embedding vectors):
+            embeddings = [
+                [0.1, 0.2, 0.4],
+                [-0.2, 0.3, 0.2],
+                [-0.1, -0.1, 0.3]
+            ]
+        and we want to attend to token at index 1 we get a result of 
+            [
+                [0.1, 0.2, 0.4] dot [-0.2, 0.3, 0.2], 
+                [-0.2, 0.3, 0.2] dot [-0.2, 0.3, 0.2], 
+                [-0.1, -0.1, 0.3] dot [-0.2, 0.3, 0.2], 
+
+        params:
+            embeddings must be a tensor of order 2,
+                with each row being a vector of embeddings represneting one token.
         """
-        query_matrix = self.query_matrix(embeddings)
-        key_matrix = self.key_matrix(embeddings)
-        return query_matrix[tok_idx].dot(key_matrix[tok_idx])
 
+        query = embeddings[tok_idx]
+        attn_scores = torch.empty(embeddings.shape[0])
+        for i, x_i in enumerate(embeddings):
+            attn_scores[i] = torch.dot(x_i, query)
+        return attn_scores
 
     def weights_for_token(self, embeddings, tok_idx):
         """
