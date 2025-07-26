@@ -30,9 +30,23 @@ def test_qkv_matrices():
 def test_attention_scores_for_token():
 
     """
-    see page67 in book
+    see page67/68 in book
     """
     a = Attention(token_vector_dim=3, weight_vector_dim=2)
 
-    assert round(a.scores_for_token(_TEST_EMBEDDINGS, 1).item(), 4) == 1.8524
+    # Calculate the attention scores of all tokens relative to the attended to token at idx 1
+    scores = a.scores_for_token(_TEST_EMBEDDINGS, 1)
+    assert scores.shape == torch.Size([6])
+    assert [round(x, 4) for x in scores.tolist()] == [1.2705, 1.8524, 1.8111, 1.0795, 0.5577, 1.5440]
 
+def test_attention_weights_for_token():
+    """
+    see page68
+    """
+    a = Attention(token_vector_dim=3, weight_vector_dim=2)
+
+    # Calculate the attention weights of all tokens relative to the attended to token at idx 1
+    weights = a.weights_for_token(_TEST_EMBEDDINGS, 1)
+    assert weights.shape == torch.Size([6])
+    assert sum(weights) == 1
+    assert [round(x, 4) for x in weights.tolist()] == [0.1500, 0.2264, 0.2199, 0.1311, 0.0906, 0.1820]
