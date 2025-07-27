@@ -1,6 +1,6 @@
 import torch
 
-class Attention():
+class Attention(torch.nn.Module):
 
     """
     The trainable attention mechanism for the LLM. 
@@ -15,9 +15,23 @@ class Attention():
         is calculated as the dot product of t's key vector (the relevant row) and a's query vector.
     4. Calculate the attention weights, which are simply the scaled and normalized attention scores.
 
+    The terms query, key and value are borrowed from the database/information retrieval domain.
+    <query> is effectively the search term which we use to match against keys.
+    For each <key> vector (representing a token) we see how relevant it is for the given attended to token,
+    for which we use the query vector i.e. the attention weight. 
+    Once the attention weight for each key in respect to the query has been found we apply it to the 
+    actual <value> of the given token and compute the context vector.
+
+    Assumption: We don't want to use juse want single vector for all three purposes (query, key, value)
+    as we need to be be able to fine-tune all three of them appropriately during training.
+
+    For production use we inherit from torch.nn.Module which gives us some functionalities built-in.
+    Technically it's not a requirement.
+    It allows us e.g. to simply use this class like 
+        context_matrix = Attention(dim, dim)(embeddings)
     """
 
-    def __init__(self, token_vector_dim, weight_vector_dim):
+    def __init__(self, token_vector_dim, weight_vector_dim, requires_grad=False):
         """
         This implementation of the attention meachanism uses trainable weight matrices.
         For this we need to create 3 weight matrices, named: query, key and value.
@@ -34,12 +48,18 @@ class Attention():
                 The dimension of the embedding vector representing a token 
             weight_vector_dim:
                 The dimension of the vector representing a weigth
+            requires_grad:
+                Should be true for production use to make the weights trainable.
+                Note that we will not set a manual seed if this is set to true
         """
-        torch.manual_seed(123)
+        if not requires_grad:
+            # No manual see for production use
+            torch.manual_seed(123)
+        super().__init__()
         self.weights_vector_dim = weight_vector_dim
-        self.query_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=False)
-        self.key_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=False)
-        self.value_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=False)
+        self.query_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=requires_grad)
+        self.key_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=requires_grad)
+        self.value_weights = torch.nn.Parameter(torch.rand(token_vector_dim, weight_vector_dim), requires_grad=requires_grad)
        
     
     def query_matrix(self, embeddings):
@@ -104,72 +124,30 @@ class Attention():
 
     def context_vector_for_token(self, embeddings, tok_idx):
         """
-        Calculates the context vector for the token at given tok_idx. 
+        Calculate the context vector for the given embeddings 
+        relative to the "attended" token at index tok_idx
 
-        The context vector is the sum of all input tokens' embeddings
-        multiplied by their attention weights.
-        The context vector is of the same dimension as the embedding vectors
-
-        For example:
-            Say we have the following embeddings (4 tokens, with an embedding vector of 3 dimensions)
-            and want to calculate the context vector for tok_idx=1
-
-            embeddings = [
-                [0.4, 0.1, 0.8], // tok_idx=0
-                [0.5, 0.8, 0.6], // tok_idx=1
-                [0.5, 0.8, 0.6], 
-                [0.0, 0.8, 0.5]
-            ]
-
-            We now calculate the attention_weights for token at index 1, which results in:
-
-            attention_weights = [0.1, 0.2, 0.2, 0.1]
-
-            To calculate the context_vector we now multiply each input/embedding vector by the associated weight 
-
-            [
-                [0.4, 0.1, 0.8] * 0.1,
-                [0.2, 0.8, 0.6] * 0.2,
-                ...etc...
-            ]
-
-            We now sum up those vectors 
-
-            context_vector = [0.4, 0.6, 0.5]
+        The context vector is calculated as the sum of the products 
+        of each token's attention weight with its value vector. 
+        The attention weight is thus used as a weighing factor that weighs
+        the importance of each token's value vector.
         """
-        attention_weights = self.weights_for_token(embeddings, tok_idx)
-        context_vector = torch.zeros(embeddings[tok_idx].shape)
-        for i, x_i in enumerate(embeddings):
-            context_vector += attention_weights[i] * x_i
-        return context_vector
+        
+        return self.weights_for_token(embeddings, tok_idx) @ self.value_matrix(embeddings)
 
-    def scores(self, embeddings):
+    def forward(self, embeddings):
         """
-        Calculates the attentions scores for all tokens.
+        Calculates the context vectors for all tokens.
+        This is effectively a combination of all the above methods 
+        generalised to the full embeddings (vs just one attended to token)
 
-        Same as scores_for_token but for all tokens instead of just the one at a given index
-
-        The resulting tensor is of size nr_of_tokens * nr_of_tokens (i.e. N^2),
-        since we get a score for each token relative to every other token.
-
-        We could use a nested for look and calculate the dot products one by one or even 
-        call the attention_scores_for_token() method, but for performance reason we instead 
-        use matrix multiplication which does exactly the same thing.
+        The above methods were implemented only for learning purposes.
         """
-        return embeddings @ embeddings.T
-   
-    def weights(self, embeddings):
-        """
-        Calculates the attention weithts for all tokens.
+        keys = self.key_matrix(embeddings)
+        queries = self.query_matrix(embeddings)
+        values = self.value_matrix(embeddings)
 
-        Same as weights_for_token but for all tokens.
-        """
-        return torch.softmax(self.scores(embeddings), dim=-1)
+        scores = queries @ keys.T
+        weights = torch.softmax(scores / keys.shape[-1]**0.5, dim=-1)
+        return weights @ values
 
-    def context_vectors(self, embeddings):
-        """
-        Caclulates the context vectors for all tokens.
-
-        Same as context_vector_for_token but for all tokens.
-        """
-        return self.weights(embeddings) @ embeddings

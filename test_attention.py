@@ -1,5 +1,6 @@
 import torch
 from attention import Attention
+from attention2 import Attention2
 
 _TEST_EMBEDDINGS = torch.tensor([
         [0.43, 0.15, 0.89],
@@ -50,3 +51,33 @@ def test_attention_weights_for_token():
     assert weights.shape == torch.Size([6])
     assert sum(weights) == 1
     assert [round(x, 4) for x in weights.tolist()] == [0.1500, 0.2264, 0.2199, 0.1311, 0.0906, 0.1820]
+
+def test_context_vector_for_token():
+    """
+    see page69/70
+    """
+    a = Attention(token_vector_dim=3, weight_vector_dim=2)
+
+    context_vector = a.context_vector_for_token(_TEST_EMBEDDINGS, 1)
+    assert [round(x, 4) for x in context_vector.tolist()] == [0.3061, 0.8210]
+
+def test_forward():
+    """
+    see page70/71
+    """
+    torch.manual_seed(123)
+    a = Attention(token_vector_dim=3, weight_vector_dim=2, requires_grad=True)
+    context_matrix = a(_TEST_EMBEDDINGS)
+    assert context_matrix.shape == torch.Size([6, 2])
+    assert [round(x, 4) for x in context_matrix[1].tolist()] == [0.3061, 0.8210]
+
+def test_attention2():
+    """
+    see page72/73
+    """
+    torch.manual_seed(789)
+    a = Attention2(token_vector_dim=3, weight_vector_dim=2)
+    context_matrix = a(_TEST_EMBEDDINGS)
+    assert context_matrix.shape == torch.Size([6, 2])
+    assert [round(x, 4) for x in context_matrix[1].tolist()] == [-0.0748, 0.0703]
+
