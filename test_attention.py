@@ -1,6 +1,7 @@
 import torch
 from attention import Attention
 from attention2 import Attention2
+from attention_causal import AttentionCausal
 
 _TEST_EMBEDDINGS = torch.tensor([
         [0.43, 0.15, 0.89],
@@ -57,7 +58,6 @@ def test_context_vector_for_token():
     see page69/70
     """
     a = Attention(token_vector_dim=3, weight_vector_dim=2)
-
     context_vector = a.context_vector_for_token(_TEST_EMBEDDINGS, 1)
     assert [round(x, 4) for x in context_vector.tolist()] == [0.3061, 0.8210]
 
@@ -81,3 +81,22 @@ def test_attention2():
     assert context_matrix.shape == torch.Size([6, 2])
     assert [round(x, 4) for x in context_matrix[1].tolist()] == [-0.0748, 0.0703]
 
+def test_attention_weights():
+    """
+    see page 75
+    """
+    torch.manual_seed(789)
+    a = AttentionCausal(token_vector_dim=3, weight_vector_dim=2)
+    weights = a.weights(_TEST_EMBEDDINGS)
+    assert weights.shape == torch.Size([6, 6])
+    assert [round(x, 4) for x in weights[1].tolist()] == [0.2041, 0.1659, 0.1662, 0.1496, 0.1665, 0.1477]
+
+def test_simple_masked_attention_weights():
+    """
+    see page 76
+    """
+    torch.manual_seed(789)
+    a = AttentionCausal(token_vector_dim=3, weight_vector_dim=2)
+    simple_masked_weights = a.simple_masked_weights(_TEST_EMBEDDINGS)
+    assert simple_masked_weights.shape == torch.Size([6, 6])
+    assert [round(x, 4) for x in simple_masked_weights[1].tolist()] == [0.5517, 0.4483, 0, 0, 0, 0]
