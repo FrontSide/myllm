@@ -112,3 +112,12 @@ def test_masked_attention_weights():
     assert [round(x, 4) for x in masked_weights[1].tolist()] == [0.5517, 0.4483, 0, 0, 0, 0]
 
 
+def test_masked_attention_weights_with_dropout():
+    """
+    see page 80
+    """
+    torch.manual_seed(789)
+    a = AttentionCausal(token_vector_dim=3, weight_vector_dim=2)
+    masked_weights = a.masked_weights_with_dropout(_TEST_EMBEDDINGS)
+    assert masked_weights.shape == torch.Size([6, 6])
+    assert [round(x, 4) for x in masked_weights[5].tolist()] == [0, 0.3327, 0.3331, 0.3084, 0.3331, 0]

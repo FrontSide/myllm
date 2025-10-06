@@ -44,9 +44,16 @@ class AttentionCausal(torch.nn.Module):
         context_length = scores.shape[0]
         mask = torch.triu(torch.ones(context_length, context_length), diagonal=1)
         masked = scores.masked_fill(mask.bool(), -torch.inf)
-        print(f"mask: {mask}")
-        print(f"masked: {masked}")
         return torch.softmax(masked / keys.shape[-1]**0.5, dim=1)
+
+    def masked_weights_with_dropout(self, embeddings):
+        """
+        Randomly drop out additional values from the attention scores to prevent overfitting
+        """
+        torch.manual_seed(123)
+        dropout = torch.nn.Dropout(0.5)
+        torch.manual_seed(123)
+        return dropout(self.masked_weights(embeddings))
 
     def forward(self, embeddings):
         values = self.value_weights(embeddings)
