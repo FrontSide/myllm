@@ -2,6 +2,7 @@ import torch
 from attention import Attention
 from attention2 import Attention2
 from attention_causal import AttentionCausal
+from attention_causal2 import AttentionCausal2
 
 _TEST_EMBEDDINGS = torch.tensor([
         [0.43, 0.15, 0.89],
@@ -121,3 +122,15 @@ def test_masked_attention_weights_with_dropout():
     masked_weights = a.masked_weights_with_dropout(_TEST_EMBEDDINGS)
     assert masked_weights.shape == torch.Size([6, 6])
     assert [round(x, 4) for x in masked_weights[5].tolist()] == [0, 0.3327, 0.3331, 0.3084, 0.3331, 0]
+
+
+def test_causal_attention2():
+    """
+    see page 81
+    """
+    torch.manual_seed(789)
+    a = AttentionCausal2(token_vector_dim=3, weight_vector_dim=2, context_length=6, dropout=0.5)
+    input_batches = torch.stack((_TEST_EMBEDDINGS, _TEST_EMBEDDINGS), dim=0)
+    context_matrix = a(input_batches) 
+    assert context_matrix.shape == torch.Size([2, 6, 2]) # 2 batches, six words, vector dimesion 2  
+    #TODO: we don't have reference output values to compare this too at this point in the book
