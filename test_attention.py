@@ -100,3 +100,15 @@ def test_simple_masked_attention_weights():
     simple_masked_weights = a.simple_masked_weights(_TEST_EMBEDDINGS)
     assert simple_masked_weights.shape == torch.Size([6, 6])
     assert [round(x, 4) for x in simple_masked_weights[1].tolist()] == [0.5517, 0.4483, 0, 0, 0, 0]
+
+def test_masked_attention_weights():
+    """
+    see page 78
+    """
+    torch.manual_seed(789)
+    a = AttentionCausal(token_vector_dim=3, weight_vector_dim=2)
+    masked_weights = a.masked_weights(_TEST_EMBEDDINGS)
+    assert masked_weights.shape == torch.Size([6, 6])
+    assert [round(x, 4) for x in masked_weights[1].tolist()] == [0.5517, 0.4483, 0, 0, 0, 0]
+
+

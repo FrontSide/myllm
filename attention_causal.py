@@ -34,8 +34,21 @@ class AttentionCausal(torch.nn.Module):
         row_sums = masked_simple.sum(dim=-1, keepdim=True)
         return masked_simple / row_sums
 
+    def masked_weights(self, embeddings):
+        """
+        Same as simple_masked_weights but using more utility funtions
+        """
+        keys = self.key_weights(embeddings)
+        queries = self.query_weights(embeddings)
+        scores = queries @ keys.T
+        context_length = scores.shape[0]
+        mask = torch.triu(torch.ones(context_length, context_length), diagonal=1)
+        masked = scores.masked_fill(mask.bool(), -torch.inf)
+        print(f"mask: {mask}")
+        print(f"masked: {masked}")
+        return torch.softmax(masked / keys.shape[-1]**0.5, dim=1)
 
     def forward(self, embeddings):
         values = self.value_weights(embeddings)
-        return self.weights(embeddings) @ values
+        return self.masked_weights(embeddings) @ values
 
