@@ -1,3 +1,3 @@
 .PHONY: test
 test:
-	python -m pytest --ignore=lib --ignore=lib64 .
+	python -m pytest -vv --ignore=lib --ignore=lib64 .
