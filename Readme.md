@@ -25,7 +25,7 @@ Following steps will need to be implemented to build an LLM:
 - Tokenise the text (i.e turn the words into numbers)
 - Create embedding vectors (turn each token into an n-dimensional vector)
 - Create position-aware input embedding vectors (change the embedding vectors for each occurrence of a word in the input text based on its position)
-- Pass the embeddings through a self-attention mechanism with with trainable weights (TODO: ...)
+- Pass the embeddings through a self-attention mechanism with with trainable weights (this will further transform the input vectors to also incorporate information about all other inputs - in a given sequence - relative to any one token.)
 
 ### Tokenisation and Embeddings
 We transform words into vectors by splitting them into tokens.
